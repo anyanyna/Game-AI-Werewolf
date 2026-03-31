@@ -5,35 +5,19 @@ function GameJoin({ onNavigate }) {
   const [gameCode, setGameCode] = useState('')
   const { user, joinGame, setError, error, clearError, setIsLoading, isLoading } = useGame()
 
-  const handleJoin = (e) => {
+  const handleJoin = async (e) => {
     e.preventDefault()
     clearError()
     setIsLoading(true)
     
-    // 模拟加入游戏请求
-    fetch('http://localhost:8080/api/game/join', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ game_code: gameCode, user_id: user.id }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          joinGame(data.game)
-          onNavigate('gameLobby')
-        }
-      })
-      .catch((error) => {
-        setError('加入游戏失败，请稍后重试')
-        console.error('Error:', error)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    try {
+      await joinGame(gameCode, user.id)
+      onNavigate('gameLobby')
+    } catch (err) {
+      setError(err.message || '加入游戏失败，请稍后重试')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

@@ -4,37 +4,21 @@ import { useGame } from '../contexts/GameContext'
 function Login({ onNavigate }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const { login, setError, error, clearError, setIsLoading, isLoading } = useGame()
+  const { login, error, clearError, setIsLoading, isLoading } = useGame()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     clearError()
     setIsLoading(true)
     
-    // 模拟登录请求
-    fetch('http://localhost:8080/api/user/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          login(data.user)
-          onNavigate('home')
-        }
-      })
-      .catch((error) => {
-        setError('登录失败，请稍后重试')
-        console.error('Error:', error)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    try {
+      await login(username, password)
+      onNavigate('home')
+    } catch (err) {
+      setError(err.message || '登录失败，请稍后重试')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

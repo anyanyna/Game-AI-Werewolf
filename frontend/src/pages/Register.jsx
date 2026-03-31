@@ -5,37 +5,21 @@ function Register({ onNavigate }) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { register, setError, error, clearError, setIsLoading, isLoading } = useGame()
+  const { register, error, clearError, setIsLoading, isLoading } = useGame()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     clearError()
     setIsLoading(true)
     
-    // 模拟注册请求
-    fetch('http://localhost:8080/api/user/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, email, password }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          register(data.user)
-          onNavigate('home')
-        }
-      })
-      .catch((error) => {
-        setError('注册失败，请稍后重试')
-        console.error('Error:', error)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    try {
+      await register(username, email, password)
+      onNavigate('home')
+    } catch (err) {
+      setError(err.message || '注册失败，请稍后重试')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

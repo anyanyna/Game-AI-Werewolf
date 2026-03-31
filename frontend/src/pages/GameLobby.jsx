@@ -2,64 +2,59 @@ import React, { useEffect } from 'react'
 import { useGame } from '../contexts/GameContext'
 
 function GameLobby({ onNavigate }) {
-  const { game, user, players, loadPlayers, setError, error, clearError, setIsLoading, isLoading } = useGame()
+  const { 
+    game, 
+    user, 
+    players, 
+    loadGameInfo, 
+    startGame,
+    setError, 
+    error, 
+    clearError, 
+    setIsLoading, 
+    isLoading 
+  } = useGame()
 
   useEffect(() => {
-    // 加载游戏玩家列表
     if (game) {
-      clearError()
-      setIsLoading(true)
-      fetch(`http://localhost:8080/api/game/players/${game.id}`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.error) {
-            setError(data.error)
-          } else {
-            loadPlayers(data.players)
-          }
-        })
-        .catch((error) => {
-          console.error('Error:', error)
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+      loadGameInfo(game.id)
     }
-  }, [game, loadPlayers, setError, clearError, setIsLoading])
+  }, [game?.id, loadGameInfo])
 
-  const handleStart = () => {
+  const handleStart = async () => {
     clearError()
     setIsLoading(true)
-    // 模拟开始游戏请求
-    fetch('http://localhost:8080/api/game/start', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ game_id: game.id }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error)
-        } else {
-          onNavigate('gameRoom')
-        }
-      })
-      .catch((error) => {
-        setError('开始游戏失败，请稍后重试')
-        console.error('Error:', error)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    
+    try {
+      await startGame(game.id)
+      onNavigate('gameRoom')
+    } catch (err) {
+      setError(err.message || '开始游戏失败，请稍后重试')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const copyGameCode = () => {
+    if (game?.game_code) {
+      navigator.clipboard.writeText(game.game_code)
+      alert('游戏代码已复制到剪贴板')
+    }
   }
 
   return (
     <div className="card">
       <h2>游戏大厅</h2>
       <div style={{ marginBottom: '20px' }}>
-        <p><strong>游戏代码：</strong>{game?.gameCode}</p>
+        <p><strong>游戏代码：</strong>
+          <span 
+            style={{ cursor: 'pointer', color: '#2196F3' }} 
+            onClick={copyGameCode}
+            title="点击复制"
+          >
+            {game?.game_code || game?.gameCode || '加载中...'}
+          </span>
+        </p>
         <p><strong>游戏状态：</strong>{game?.status === 'waiting' ? '等待中' : '进行中'}</p>
         <p><strong>玩家数量：</strong>{players.length}/12</p>
       </div>
@@ -68,10 +63,11 @@ function GameLobby({ onNavigate }) {
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {players.map((player) => (
           <li key={player.id} style={{ padding: '5px 0', borderBottom: '1px solid #eee' }}>
-            {player.isRealPerson ? (
-              <span>真人玩家 #{player.number}</span>
+            #{player.number} - 
+            {player.is_real_person || player.isRealPerson ? (
+              <span style={{ color: '#4CAF50' }}>真人玩家</span>
             ) : (
-              <span>AI数字人 #{player.number}</span>
+              <span style={{ color: '#9E9E9E' }}>AI数字人</span>
             )}
           </li>
         ))}
@@ -79,8 +75,12 @@ function GameLobby({ onNavigate }) {
 
       {error && <div className="error">{error}</div>}
 
-      {game?.hostID === user?.id && (
-        <button className="btn" onClick={handleStart} disabled={isLoading}>
+      {game?.host_id === user?.id && (
+        <button 
+          className="btn" 
+          onClick={handleStart} 
+          disabled={isLoading || players.length < 1}
+        >
           {isLoading ? '开始中...' : '开始游戏'}
         </button>
       )}
